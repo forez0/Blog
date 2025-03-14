@@ -3,10 +3,14 @@ from django.urls import reverse
 from .models import Post, Comment
 from django.contrib.auth.models import User
 
+
 class BlogTests(TestCase):
     def setUp(self):
         # Створюємо тестового користувача
-        self.user = User.objects.create_user(username='testuser', password='12345')
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='12345'
+        )
         self.client = Client()
 
         # Створюємо тестовий пост
@@ -77,7 +81,8 @@ class BlogTests(TestCase):
     def test_comment_creation(self):
         """
         Перевіряє, чи правильно створюється коментар.
-        Перевіряє, чи збігаються автор, текст коментаря та пост, до якого він належить.
+        Перевіряє, чи збігаються автор, текст коментаря та пост, до якого
+        він належить.
         """
         self.assertEqual(self.comment.author.username, 'testuser')
         self.assertEqual(self.comment.text, 'This is a test comment.')
@@ -106,8 +111,8 @@ class BlogTests(TestCase):
             )
         response = self.client.get(reverse('post_list'))
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context['posts'].has_other_pages())  # Перевіряємо наявність пагінації
-        self.assertEqual(len(response.context['posts']), 5)  # Перевіряємо кількість постів на сторінці
+        self.assertTrue(response.context['posts'].has_other_pages())
+        self.assertEqual(len(response.context['posts']), 5)
 
     # Тест 8: Перевірка пошуку
     def test_search_functionality(self):
@@ -127,10 +132,13 @@ class BlogTests(TestCase):
         та чи оновлюються дані посту в базі даних.
         """
         self.client.login(username='testuser', password='12345')
-        response = self.client.post(reverse('post_edit', args=[self.post.pk]), {
-            'title': 'Updated Test Post',
-            'content': 'This is an updated test post.',
-        })
+        response = self.client.post(
+            reverse('post_edit', args=[self.post.pk]),
+            {
+                'title': 'Updated Test Post',
+                'content': 'This is an updated test post.',
+            }
+        )
         self.assertEqual(response.status_code, 302)
         self.post.refresh_from_db()
         self.assertEqual(self.post.title, 'Updated Test Post')
@@ -143,7 +151,8 @@ class BlogTests(TestCase):
         та чи пост більше не існує в базі даних.
         """
         self.client.login(username='testuser', password='12345')
-        response = self.client.post(reverse('post_delete', args=[self.post.pk]))
+        response = self.client.post(
+            reverse('post_delete', args=[self.post.pk])
+        )
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Post.objects.filter(pk=self.post.pk).exists())
-

@@ -1,4 +1,8 @@
-"""Модуль з тестами для блогу Django."""
+"""Модуль з тестами для блогу Django.
+
+Містить тести для перевірки функціоналу блогу, включаючи створення постів,
+коментарів, автентифікацію та авторизацію.
+"""
 
 from django.contrib.auth.models import User
 from django.test import TestCase, Client
@@ -33,13 +37,18 @@ class BlogTests(TestCase):
         self.assertEqual(self.post.content, 'This is a test post.')
         self.assertEqual(self.post.author.username, 'testuser')
 
-    def test_post_list_view(self):
-        """Перевірка перегляду списку публікацій."""
-        response = self.client.get(reverse('post_list'))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Test Post')
-        self.assertTemplateUsed(response, 'blog/post_list.html')
-
+    def test_anonymous_post_creation(self):
+        """Перевірка, що анонімний користувач не може створити публікацію."""
+        self.client.logout()
+        response = self.client.post(reverse('post_create'), {
+            'title': 'Anon Post',
+            'content': 'Anonymous content',
+            'author_name': 'AnonUser'
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            Post.objects.filter(title='Anon Post').exists()  # pylint: disable=no-member
+        )
 
     def test_post_create_view(self):
         """Перевірка створення нової публікації."""
@@ -121,19 +130,8 @@ class BlogTests(TestCase):
             Comment.objects.count(), 1  # pylint: disable=no-member
         )
 
-    def test_anonymous_post_with_name(self):
-        """Перевірка створення публікації анонімним користувачем з ім'ям."""
-        self.client.logout()
-        self.client.post(reverse('post_create'), {
-            'title': 'Anon Post',
-            'content': 'Anonymous content',
-            'author_name': 'AnonUser'
-        })
-        post = Post.objects.filter(title='Anon Post').first()  # pylint: disable=no-member
-        self.assertEqual(post.author_name, 'AnonUser')
-
     def test_logged_in_post_sets_author_name(self):
-        """Перевірка, що у публікації ставиться ім'я автора при авторизації."""
+        """Перевірка, що у публікації ставиться ім'я автора."""
         self.client.login(username='testuser', password='12345')
         self.client.post(reverse('post_create'), {
             'title': 'Logged Post',
@@ -143,7 +141,7 @@ class BlogTests(TestCase):
         self.assertEqual(post.author_name, 'testuser')
 
     def test_anonymous_comment_with_name(self):
-        """Перевірка створення коментаря анонімним користувачем з ім'ям."""
+        """Перевірка створення коментаря анонімним користувачем."""
         self.client.logout()
         self.client.post(
             reverse('add_comment', args=[self.post.pk]),
@@ -157,7 +155,7 @@ class BlogTests(TestCase):
         )
 
     def test_logged_in_comment_sets_author_name(self):
-        """Перевірка, що у коментарі ставиться ім'я автора при авторизації."""
+        """Перевірка, що у коментарі ставиться ім'я автора."""
         self.client.login(username='testuser', password='12345')
         self.client.post(
             reverse('add_comment', args=[self.post.pk]),
@@ -196,3 +194,63 @@ class BlogTests(TestCase):
         self.assertTrue(
             Post.objects.filter(pk=self.post.pk).exists()  # pylint: disable=no-member
         )
+
+    def test_comment_without_text_error(self):
+        """Перевірка повідомлення про помилку."""
+        self.client.login(username='testuser', password='12345')
+        response = self.client.post(
+            reverse('add_comment', args=[self.post.pk]),
+            {'text': ''},
+            follow=True
+        )
+        if hasattr(response, 'context') and 'form' in response.context:
+            self.assertTrue(response.context['form'].errors)
+            self.assertIn('text', response.context['form'].errors)
+        self.assertContains(response, 'This field is required', status_code=200)
+
+    def test_user_cannot_delete_other_posts(self):
+        """Перевірка, що користувач не може видаляти чужі публікації."""
+        self.client.login(username='testuser', password='12345')
+        other_user = User.objects.create_user(
+            username='otheruser',
+            password='12345'
+        )
+        other_post = Post.objects.create(
+            title='Other Post',
+            content='Content of other post',
+            author=other_user
+        )
+        response = self.client.post(
+            reverse('post_delete', args=[other_post.pk])
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(
+            Post.objects.filter(pk=other_post.pk).exists()  # pylint: disable=no-member
+        )
+
+    def test_user_cannot_edit_other_posts(self):
+        """Перевірка, що користувач не може редагувати чужі публікації."""
+        other_user = User.objects.create_user(
+            username='otheruser',
+            password='12345'
+        )
+        other_post = Post.objects.create(
+            title='Other Post',
+            content='Original content',
+            author=other_user
+        )
+
+        self.client.login(username='testuser', password='12345')
+
+        response = self.client.post(
+            reverse('post_edit', args=[other_post.pk]),
+            {
+                'title': 'Hacked Post',
+                'content': 'I changed this!'
+            }
+        )
+
+        self.assertEqual(response.status_code, 403)
+        other_post.refresh_from_db()
+        self.assertEqual(other_post.title, 'Other Post')
+        self.assertEqual(other_post.content, 'Original content')

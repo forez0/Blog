@@ -210,5 +210,13 @@ class CommentForm(BaseModelForm):
     def clean(self):
         """Додаткова валідація даних форми."""
         cleaned_data = super().clean()
-        # Тут можна додати додаткову валідацію
+        text = cleaned_data.get('text')
+
+        if not text:
+            raise forms.ValidationError({'text': 'Це поле обов\'язкове для заповнення'})
+
+        # For anonymous users, require author_name
+        if not self.request.user.is_authenticated and not cleaned_data.get('author_name'):
+            raise forms.ValidationError({'author_name': 'Будь ласка, вкажіть ваше ім\'я'})
+
         return cleaned_data

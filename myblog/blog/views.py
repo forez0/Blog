@@ -8,9 +8,11 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponseForbidden
 
 from .forms import PostForm, CommentForm, RegistrationForm
 from .models import Post
+
 
 
 def register(request):
@@ -122,6 +124,7 @@ def add_comment(request, pk):
         HttpResponseRedirect: перенаправлення до сторінки деталей допису
     """
     post = get_object_or_404(Post, pk=pk)
+
     if request.method == 'POST':
         form = CommentForm(request.POST, request=request)
         if form.is_valid():
@@ -131,6 +134,14 @@ def add_comment(request, pk):
                 comment.author = request.user
             comment.save()
             return redirect('post_detail', pk=post.pk)
+
+        # If form is invalid, render the post detail page with errors
+        return render(request, 'blog/post_detail.html', {
+            'post': post,
+            'form': form
+        })
+
+    # If not POST, redirect to post detail
     return redirect('post_detail', pk=post.pk)
 
 
@@ -167,14 +178,23 @@ def post_edit(request, pk):
         HttpResponse: форма редагування або перенаправлення до деталей
     """
     post = get_object_or_404(Post, pk=pk)
+
+    # Перевірка, чи поточний користувач є автором поста
+    if request.user != post.author:
+        return HttpResponseForbidden("Ви не маєте дозволу редагувати цей пост")
+
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES, instance=post, request=request)
         if form.is_valid():
+            # Додаткова перевірка, що користувач дійсно автор
+            if form.instance.author != request.user:
+                return HttpResponseForbidden("Несанкціонована спроба зміни автора")
+
             form.save()
             return redirect('post_detail', pk=post.pk)
+
     form = PostForm(instance=post, request=request)
     return render(request, 'blog/post_edit.html', {'form': form})
-
 
 @login_required
 def post_delete(request, pk):
@@ -188,8 +208,12 @@ def post_delete(request, pk):
         HttpResponse: сторінка підтвердження або перенаправлення до списку
     """
     post = get_object_or_404(Post, pk=pk)
+    if request.user != post.author:
+        return HttpResponseForbidden("Ви не маєте дозволу видаляти цей пост")
+
     if request.method == 'POST':
         post.delete()
         messages.success(request, "Пост успішно видалено")
         return redirect('post_list')
+
     return render(request, 'blog/post_confirm_delete.html', {'post': post})

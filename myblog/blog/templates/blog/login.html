@@ -1,0 +1,144 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-wrapper animate__animated animate__fadeIn">
+        <div class="login-header text-center mb-5">
+            <h2 class="display-4">
+                <i class="fas fa-sign-in-alt"></i> Вхід
+            </h2>
+            <p class="text-muted">Будь-ласка, увійдіть до свого облікового запису</p>
+        </div>
+
+        <form method="POST" class="login-form">
+            {% csrf_token %}
+
+            <div class="form-floating mb-4">
+                <input type="text" name="username" id="id_username" class="form-control" placeholder="Ім'я користувача" required>
+                <label for="id_username">
+                    <i class="fas fa-user me-2"></i>Ім'я користувача
+                </label>
+            </div>
+
+            <div class="form-floating mb-4">
+                <input type="password" name="password" id="id_password" class="form-control" placeholder="Пароль" required>
+                <label for="id_password">
+                    <i class="fas fa-lock me-2"></i>Пароль
+                </label>
+            </div>
+
+            <div class="d-grid mb-4">
+                <button type="submit" class="btn btn-primary btn-lg shadow">
+                    <i class="fas fa-sign-in-alt me-2"></i> Увійти
+                </button>
+            </div>
+
+            <div class="login-footer text-center">
+                <a href="#" class="text-decoration-none">Забули пароль?</a>
+                <span class="mx-2">|</span>
+                <a href="#" class="text-decoration-none">Реєстрація</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 20px;
+    }
+
+    .login-wrapper {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 450px;
+        transition: all 0.3s ease;
+    }
+
+    .login-wrapper:hover {
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .login-header h2 {
+        color: #3a4a6d;
+        font-weight: 700;
+    }
+
+    .form-floating {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-control {
+        height: 50px;
+        border-radius: 8px;
+        border: 2px solid #e0e6f0;
+        padding: 1rem 1rem 0.5rem 3rem;
+        transition: all 0.3s;
+        color: #2d3748; /* Додано чіткий колір тексту */
+        background-color: #f8fafc; /* Світлий фон полів */
+    }
+
+    .form-control:focus {
+        border-color: #4a6cf7;
+        box-shadow: 0 0 0 0.25rem rgba(74, 108, 247, 0.25);
+        background-color: white;
+    }
+
+    .form-control::placeholder {
+        color: transparent; /* Ховаємо стандартний placeholder */
+    }
+
+    .form-floating label {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        padding: 1rem 0.75rem 0.5rem 3rem;
+        pointer-events: none;
+        color: #718096; /* Колір мітки */
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus + label,
+    .form-control:not(:placeholder-shown) + label {
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+        color: #4a6cf7; /* Колір мітки при фокусі */
+    }
+
+    .btn-primary {
+        background-color: #4a6cf7;
+        border: none;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+        background-color: #3a5bd9;
+        transform: translateY(-2px);
+    }
+
+    .login-footer a {
+        color: #6c757d;
+        transition: color 0.3s;
+    }
+
+    .login-footer a:hover {
+        color: #4a6cf7;
+    }
+
+    @media (max-width: 576px) {
+        .login-wrapper {
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}

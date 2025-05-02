@@ -1,10 +1,128 @@
 {% extends 'blog/base.html' %}
 
 {% block content %}
-<h1>Create a New Post</h1>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Create Post</button>
-</form>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white border-0">
+                    <h1 class="h4 mb-0 text-center">
+                        <i class="fas fa-edit mr-2"></i>
+                        {% if form.instance.pk %}Редагування посту{% else %}Новий пост{% endif %}
+                    </h1>
+                </div>
+
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Заголовок -->
+                        <div class="mb-4">
+                            <label for="{{ form.title.id_for_label }}" class="form-label fw-bold">Заголовок *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-heading"></i></span>
+                                {{ form.title }}
+                            </div>
+                            {% if form.title.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.title.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Вміст -->
+                        <div class="mb-4">
+                            <label for="{{ form.content.id_for_label }}" class="form-label fw-bold">Вміст *</label>
+                            <div class="input-group">
+                                <span class="input-group-text align-items-start"><i class="fas fa-align-left mt-1"></i></span>
+                                {{ form.content }}
+                            </div>
+                            {% if form.content.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.content.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Зображення -->
+                        <div class="mb-4">
+                            <label for="{{ form.image.id_for_label }}" class="form-label fw-bold">Зображення</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-image"></i></span>
+                                {{ form.image }}
+                            </div>
+                            {% if form.image.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.image.errors }}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Максимальний розмір: 5MB. Дозволені формати: JPG, PNG, GIF.</small>
+                        </div>
+
+                        <!-- Ім'я автора (якщо потрібно) -->
+                        {% if not user.is_authenticated or form.author_name %}
+                        <div class="mb-4">
+                            <label for="{{ form.author_name.id_for_label }}" class="form-label fw-bold">Ваше ім'я</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                {{ form.author_name }}
+                            </div>
+                            <small class="form-text text-muted">
+                                {% if user.is_authenticated %}
+                                    Залиште пустим, щоб використати <strong>{{ user.username }}</strong>
+                                {% else %}
+                                    Будь-ласка, вкажіть ім'я для відображення
+                                {% endif %}
+                            </small>
+                            {% if form.author_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.author_name.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Кнопки дій -->
+                        <div class="d-flex justify-content-between mt-5 pt-3 border-top">
+                            <a href="{% if form.instance.pk %}{% url 'post_detail' pk=form.instance.pk %}{% else %}{% url 'post_list' %}{% endif %}"
+                               class="btn btn-outline-secondary px-4">
+                                <i class="fas fa-arrow-left mr-2"></i> Назад
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-save mr-2"></i>
+                                {% if form.instance.pk %}Зберегти зміни{% else %}Опублікувати{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Додаткові підказки -->
+            <div class="mt-4 p-3 bg-light rounded">
+                <h5 class="text-muted"><i class="fas fa-lightbulb mr-2"></i>Поради:</h5>
+                <ul class="text-muted small pl-3 mb-0">
+                    <li>Поля з зірочкою (*) обов'язкові до заповнення</li>
+                    <li>Використовуйте Markdown для форматування тексту</li>
+                    <li>Перевіряйте правопис перед публікацією</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control, .custom-file-input {
+        border-radius: 0.25rem;
+    }
+    textarea.form-control {
+        min-height: 200px;
+        resize: vertical;
+    }
+    .input-group-text {
+        background-color: #f8f9fa;
+    }
+    .card {
+        border-radius: 0.5rem;
+    }
+</style>
 {% endblock %}

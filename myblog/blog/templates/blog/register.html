@@ -1,0 +1,150 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-card animate__animated animate__fadeInUp">
+        <div class="register-header text-center mb-4">
+            <div class="register-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h2 class="register-title">Створення облікового запису</h2>
+            <p class="text-muted">Заповніть форму нижче для реєстрації</p>
+        </div>
+
+        <form method="POST" class="register-form">
+            {% csrf_token %}
+
+            {% for field in form %}
+            <div class="form-group mb-3">
+                <label for="{{ field.id_for_label }}" class="form-label">
+                    {% if field.name == 'username' %}
+                        <i class="fas fa-user me-2"></i>
+                    {% elif field.name == 'email' %}
+                        <i class="fas fa-envelope me-2"></i>
+                    {% elif 'password' in field.name %}
+                        <i class="fas fa-lock me-2"></i>
+                    {% endif %}
+                    {{ field.label }}
+                </label>
+                {{ field }}
+                {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-register">
+                    <i class="fas fa-user-plus me-2"></i> Зареєструватись
+                </button>
+            </div>
+        </form>
+
+        <div class="register-footer text-center mt-4">
+            <p class="mb-0">Вже маєте акаунт? <a href="{% url 'login' %}" class="login-link">Увійти</a></p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .register-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f6f9fc 0%, #e8f0fe 100%);
+        padding: 2rem;
+    }
+
+    .register-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+        width: 100%;
+        max-width: 500px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .register-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .register-icon {
+        font-size: 2.5rem;
+        color: #4e73df;
+        margin-bottom: 1rem;
+    }
+
+    .register-title {
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-control {
+        height: 50px;
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+    }
+
+    .btn-register {
+        background-color: #4e73df;
+        color: white;
+        border: none;
+        padding: 12px;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    .btn-register:hover {
+        background-color: #3b5bdb;
+        transform: translateY(-2px);
+    }
+
+    .login-link {
+        color: #4e73df;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .login-link:hover {
+        color: #3b5bdb;
+        text-decoration: underline;
+    }
+
+    @media (max-width: 576px) {
+        .register-card {
+            padding: 1.5rem;
+        }
+
+        .register-container {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}

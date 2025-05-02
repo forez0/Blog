@@ -1,110 +1,84 @@
+"""Модуль з тестами для блогу Django.
+
+Містить тести для перевірки функціоналу блогу, включаючи створення постів,
+коментарів, автентифікацію та авторизацію.
+"""
+
+from django.contrib.auth.models import User
 from django.test import TestCase, Client
 from django.urls import reverse
 from .models import Post, Comment
-from django.contrib.auth.models import User
 
 
 class BlogTests(TestCase):
+    """Набір модульних тестів для перевірки функціоналу блогу."""
+
     def setUp(self):
-        # Створюємо тестового користувача
+        """Налаштовує початкові дані для тестів."""
         self.user = User.objects.create_user(
             username='testuser',
             password='12345'
         )
         self.client = Client()
-
-        # Створюємо тестовий пост
-        self.post = Post.objects.create(
+        self.post = Post.objects.create(  # pylint: disable=no-member
             title='Test Post',
             content='This is a test post.',
-            author=self.user  # Додано автора
+            author=self.user
         )
-
-        # Створюємо тестовий коментар
-        self.comment = Comment.objects.create(
+        self.comment = Comment.objects.create(  # pylint: disable=no-member
             post=self.post,
-            author=self.user,  # Передаємо User-об'єкт
+            author=self.user,
             text='This is a test comment.'
         )
 
-    # Тест 1: Перевірка створення посту
     def test_post_creation(self):
-        """
-        Перевіряє, чи правильно створюється пост.
-        Перевіряє, чи збігаються заголовок, вміст та автор посту.
-        """
+        """Перевірка створення публікації."""
         self.assertEqual(self.post.title, 'Test Post')
         self.assertEqual(self.post.content, 'This is a test post.')
         self.assertEqual(self.post.author.username, 'testuser')
 
-    # Тест 2: Перевірка відображення головної сторінки
-    def test_post_list_view(self):
-        """
-        Перевіряє, чи головна сторінка відображається коректно.
-        Перевіряє, чи статус відповіді 200, чи містить сторінка тестовий пост
-        та чи використовується правильний шаблон.
-        """
-        response = self.client.get(reverse('post_list'))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Test Post')
-        self.assertTemplateUsed(response, 'blog/post_list.html')
+    def test_anonymous_post_creation(self):
+        """Перевірка, що анонімний користувач не може створити публікацію."""
+        self.client.logout()
+        response = self.client.post(reverse('post_create'), {
+            'title': 'Anon Post',
+            'content': 'Anonymous content',
+            'author_name': 'AnonUser'
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            Post.objects.filter(title='Anon Post').exists()  # pylint: disable=no-member
+        )
 
-    # Тест 3: Перевірка відображення деталей посту
-    def test_post_detail_view(self):
-        """
-        Перевіряє, чи сторінка деталей посту відображається коректно.
-        Перевіряє, чи статус відповіді 200, чи містить сторінка заголовок
-        та вміст посту, і чи використовується правильний шаблон.
-        """
-        response = self.client.get(reverse('post_detail', args=[self.post.pk]))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Test Post')
-        self.assertContains(response, 'This is a test post.')
-        self.assertTemplateUsed(response, 'blog/post_detail.html')
-
-    # Тест 4: Перевірка створення посту через форму
     def test_post_create_view(self):
-        """
-        Перевіряє, чи форма створення посту працює коректно.
-        Перевіряє, чи після відправки форми відбувається редирект (статус 302)
-        та чи новий пост з'являється в базі даних.
-        """
+        """Перевірка створення нової публікації."""
         self.client.login(username='testuser', password='12345')
         response = self.client.post(reverse('post_create'), {
             'title': 'New Test Post',
             'content': 'This is a new test post.',
         })
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(Post.objects.filter(title='New Test Post').exists())
+        self.assertTrue(
+            Post.objects.filter(title='New Test Post').exists()  # pylint: disable=no-member
+        )
 
-    # Тест 5: Перевірка додавання коментаря
     def test_comment_creation(self):
-        """
-        Перевіряє, чи правильно створюється коментар.
-        Перевіряє, чи збігаються автор, текст коментаря та пост, до якого
-        він належить.
-        """
+        """Перевірка створення коментаря."""
         self.assertEqual(self.comment.author.username, 'testuser')
         self.assertEqual(self.comment.text, 'This is a test comment.')
         self.assertEqual(self.comment.post.title, 'Test Post')
 
-    # Тест 6: Перевірка відображення коментарів на сторінці посту
     def test_comment_display(self):
-        """
-        Перевіряє, чи коментар відображається на сторінці деталей посту.
-        """
-        response = self.client.get(reverse('post_detail', args=[self.post.pk]))
+        """Перевірка відображення коментаря на сторінці публікації."""
+        response = self.client.get(
+            reverse('post_detail', args=[self.post.pk])
+        )
         self.assertContains(response, 'This is a test comment.')
 
-    # Тест 7: Перевірка пагінації
     def test_pagination(self):
-        """
-        Перевіряє, чи працює пагінація на головній сторінці.
-        Створює 15 постів, перевіряє, чи сторінка містить пагінацію
-        та чи на одній сторінці відображається 5 постів.
-        """
+        """Перевірка пагінації для списку публікацій."""
         for i in range(15):
-            Post.objects.create(
+            Post.objects.create(  # pylint: disable=no-member
                 title=f'Post {i}',
                 content=f'Content {i}',
                 author=self.user
@@ -114,45 +88,169 @@ class BlogTests(TestCase):
         self.assertTrue(response.context['posts'].has_other_pages())
         self.assertEqual(len(response.context['posts']), 5)
 
-    # Тест 8: Перевірка пошуку
     def test_search_functionality(self):
-        """
-        Перевіряє, чи працює пошук постів.
-        Перевіряє, чи сторінка пошуку містить тестовий пост.
-        """
+        """Перевірка функціональності пошуку."""
         response = self.client.get(reverse('post_list') + '?q=Test')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Post')
 
-    # Тест 9: Перевірка редагування посту
     def test_post_edit_view(self):
-        """
-        Перевіряє, чи форма редагування посту працює коректно.
-        Перевіряє, чи після відправки форми відбувається редирект (статус 302)
-        та чи оновлюються дані посту в базі даних.
-        """
+        """Перевірка редагування публікації."""
         self.client.login(username='testuser', password='12345')
         response = self.client.post(
             reverse('post_edit', args=[self.post.pk]),
             {
                 'title': 'Updated Test Post',
-                'content': 'This is an updated test post.',
+                'content': 'This is an updated test post.'
             }
         )
         self.assertEqual(response.status_code, 302)
         self.post.refresh_from_db()
         self.assertEqual(self.post.title, 'Updated Test Post')
 
-    # Тест 10: Перевірка видалення посту
     def test_post_delete_view(self):
-        """
-        Перевіряє, чи форма видалення посту працює коректно.
-        Перевіряє, чи після видалення посту відбувається редирект (статус 302)
-        та чи пост більше не існує в базі даних.
-        """
+        """Перевірка видалення публікації."""
         self.client.login(username='testuser', password='12345')
         response = self.client.post(
             reverse('post_delete', args=[self.post.pk])
         )
         self.assertEqual(response.status_code, 302)
-        self.assertFalse(Post.objects.filter(pk=self.post.pk).exists())
+        self.assertFalse(
+            Post.objects.filter(pk=self.post.pk).exists()  # pylint: disable=no-member
+        )
+
+    def test_comment_without_text(self):
+        """Перевірка створення коментаря без тексту."""
+        self.client.login(username='testuser', password='12345')
+        self.client.post(
+            reverse('add_comment', args=[self.post.pk]),
+            {'text': ''}
+        )
+        self.assertEqual(
+            Comment.objects.count(), 1  # pylint: disable=no-member
+        )
+
+    def test_logged_in_post_sets_author_name(self):
+        """Перевірка, що у публікації ставиться ім'я автора."""
+        self.client.login(username='testuser', password='12345')
+        self.client.post(reverse('post_create'), {
+            'title': 'Logged Post',
+            'content': 'With user'
+        })
+        post = Post.objects.get(title='Logged Post')  # pylint: disable=no-member
+        self.assertEqual(post.author_name, 'testuser')
+
+    def test_anonymous_comment_with_name(self):
+        """Перевірка створення коментаря анонімним користувачем."""
+        self.client.logout()
+        self.client.post(
+            reverse('add_comment', args=[self.post.pk]),
+            {
+                'text': 'Anonymous comment',
+                'author_name': 'Anon'
+            }
+        )
+        self.assertEqual(
+            Comment.objects.last().author_name, 'Anon'  # pylint: disable=no-member
+        )
+
+    def test_logged_in_comment_sets_author_name(self):
+        """Перевірка, що у коментарі ставиться ім'я автора."""
+        self.client.login(username='testuser', password='12345')
+        self.client.post(
+            reverse('add_comment', args=[self.post.pk]),
+            {'text': 'User comment'}
+        )
+        comment = Comment.objects.last()  # pylint: disable=no-member
+        self.assertEqual(comment.author_name, 'testuser')
+
+    def test_post_create_page_authenticated(self):
+        """Перевірка доступності сторінки створення публікації."""
+        self.client.login(username='testuser', password='12345')
+        response = self.client.get(reverse('post_create'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_create_page_anonymous_redirect(self):
+        """Перевірка редіректу для анонімних користувачів."""
+        self.client.logout()
+        response = self.client.get(reverse('post_create'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_post_edit_page_requires_authentication(self):
+        """Перевірка вимоги авторизації для редагування."""
+        self.client.logout()
+        response = self.client.get(
+            reverse('post_edit', args=[self.post.pk])
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_post_delete_requires_login(self):
+        """Перевірка вимоги авторизації для видалення."""
+        self.client.logout()
+        response = self.client.post(
+            reverse('post_delete', args=[self.post.pk])
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            Post.objects.filter(pk=self.post.pk).exists()  # pylint: disable=no-member
+        )
+
+    def test_comment_without_text_error(self):
+        """Перевірка повідомлення про помилку."""
+        self.client.login(username='testuser', password='12345')
+        response = self.client.post(
+            reverse('add_comment', args=[self.post.pk]),
+            {'text': ''},
+            follow=True
+        )
+        if hasattr(response, 'context') and 'form' in response.context:
+            self.assertTrue(response.context['form'].errors)
+            self.assertIn('text', response.context['form'].errors)
+        self.assertContains(response, 'This field is required', status_code=200)
+
+    def test_user_cannot_delete_other_posts(self):
+        """Перевірка, що користувач не може видаляти чужі публікації."""
+        self.client.login(username='testuser', password='12345')
+        other_user = User.objects.create_user(
+            username='otheruser',
+            password='12345'
+        )
+        other_post = Post.objects.create(
+            title='Other Post',
+            content='Content of other post',
+            author=other_user
+        )
+        response = self.client.post(
+            reverse('post_delete', args=[other_post.pk])
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(
+            Post.objects.filter(pk=other_post.pk).exists()  # pylint: disable=no-member
+        )
+
+    def test_user_cannot_edit_other_posts(self):
+        """Перевірка, що користувач не може редагувати чужі публікації."""
+        other_user = User.objects.create_user(
+            username='otheruser',
+            password='12345'
+        )
+        other_post = Post.objects.create(
+            title='Other Post',
+            content='Original content',
+            author=other_user
+        )
+
+        self.client.login(username='testuser', password='12345')
+
+        response = self.client.post(
+            reverse('post_edit', args=[other_post.pk]),
+            {
+                'title': 'Hacked Post',
+                'content': 'I changed this!'
+            }
+        )
+
+        self.assertEqual(response.status_code, 403)
+        other_post.refresh_from_db()
+        self.assertEqual(other_post.title, 'Other Post')
+        self.assertEqual(other_post.content, 'Original content')
